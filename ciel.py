@@ -126,7 +126,7 @@ class Campaign:
         if self.weekday == "Test":
             return True
 
-        if current_day != weekdays[(self.weekday - 1) % 7]:
+        if current_day != (weekdays[self.weekday] - 1) % 7:
             return
         elif current_time.hour != 20:
             return
