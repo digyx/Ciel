@@ -8,4 +8,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 ENV DISCORD_TOK=$DISCORD_TOK
 
-CMD ["python3", "./ciel.py"]
+CMD ["python3", "ciel.py"]
