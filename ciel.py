@@ -114,7 +114,7 @@ class Campaign:
         if self.is_correct_time():
             await self.channel.send(
                 "Scheduler:  :thumbsup: if you can make it, :thumbsdown: if you can't\n",
-                "RSVP by 4 PM, please and thank you\n",
+                "RSVP by 4 PM tomorrow, please and thank you\n",
                 "@everyone")
 
     # Check if it's 8 AM the day of the session
@@ -126,7 +126,7 @@ class Campaign:
         if self.weekday == "Test":
             return True
 
-        if current_day != (weekdays[self.weekday] - 1) % 7:
+        if current_day != weekdays[self.weekday]:
             return
         elif current_time.hour != 20:
             return
