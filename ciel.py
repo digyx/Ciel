@@ -112,10 +112,10 @@ class Campaign:
 
     async def check_rsvp(self):    
         if self.is_correct_time():
-            await self.channel.send(
-                "Scheduler:  :thumbsup: if you can make it, :thumbsdown: if you can't\n",
-                "RSVP by 4 PM tomorrow, please and thank you\n",
-                "@everyone")
+            await self.channel.send("{}\n{}\n{}".format(
+                "Scheduler:  :thumbsup: if you can make it, :thumbsdown: if you can't",
+                "RSVP by 4 PM tomorrow, please and thank you",
+                "@everyone"))
 
     # Check if it's 8 AM the day of the session
     def is_correct_time(self):
