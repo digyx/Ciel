@@ -1,24 +1,25 @@
 import discord
 from discord.ext import tasks
 
-import datetime, asyncio, os
-
-alive = True
+import datetime, os
 
 weekdays = {
-    "Monday":    0,
-    "Tuesday":   1,
-    "Wednesday": 2,
-    "Thursday":  3,
-    "Friday":    4,
-    "Saturday":  5,
-    "Sunday":    6
+    "Monday":    6,
+    "Tuesday":   0,
+    "Wednesday": 1,
+    "Thursday":  2,
+    "Friday":    3,
+    "Saturday":  4,
+    "Sunday":    5
 }
 
 
 class Client(discord.Client):
     def __init__(self):
-        super().__init__()
+        intents = discord.Intents().default()
+        intents.members = True
+
+        super().__init__(intents=intents)
         self.campaigns = {}
 
     async def on_ready(self):
@@ -27,7 +28,7 @@ class Client(discord.Client):
         update_campaigns.start(self)
         scheduler.start(self)
 
-    
+
     def update_campaigns(self):
         self.campaigns = {}
 
@@ -35,7 +36,7 @@ class Client(discord.Client):
             try:
                 metadata = channel.topic.split("\n")
                 campaign_flag = metadata[-1]
-    
+
                 if campaign_flag[0:8] == "Campaign":
                     self.campaigns[channel.name] = Campaign(channel, metadata)
 
@@ -45,7 +46,7 @@ class Client(discord.Client):
 
     async def on_message(self, message: discord.Message):
         from_admin = (message.author.id == 447533152567689226)
-        
+
         if message.author == self.user:  # Make sure Ciel doesn't react to herself
             return
 
@@ -56,15 +57,18 @@ class Client(discord.Client):
             await message.channel.send("ZZZzzz")
             await self.close()
 
-            global alive
-            alive = False
             return
+
+        if message.content == "!count":
+            chan_id = message.channel.id
+            count = len(self.get_channel(chan_id).members)
+            await message.channel.send(count)
 
         try:  # Commands for only D&D campaigns
             self.campaigns[message.channel.name]
         except KeyError:
             return
-        
+
         if message.content == "!time":
             chan_name = message.channel.name
             dnd_time = self.campaigns[chan_name].datetime
@@ -80,21 +84,17 @@ class Client(discord.Client):
 
 
     # Check if everyone reacts to the RSVP message
-    async def on_reaction_add(self, reaction: discord.Reaction ,user: discord.Member):
+    async def on_reaction_add(self, reaction: discord.Reaction, user: discord.Member):
         msg = reaction.message
 
         if msg.author == self.user and msg.content[0:9] == "Scheduler":
-            print(len(msg.channel.members))
-            print(reaction.emoji)
-            print(reaction.count)
-
-            if reaction.count == (len(msg.channel.members) - 1) and reaction.emoji == "👍":
-                await msg.channel.send("Thank you!  See you soon!")
+            if reaction.count == (len(msg.channel.members) - 2) and reaction.emoji == "👍":
+                await msg.channel.send("Thank you, see you soon!")
 
             if reaction.emoji == "👎":
                 raw_users = await reaction.users().flatten()
                 users = ", ".join([user.name for user in raw_users])
-                
+
                 dm = "Sorry, {} in {} can't make it.".format(users, msg.channel.name)
                 user = await self.fetch_user(447533152567689226)
                 await user.send(dm)
@@ -110,10 +110,10 @@ class Campaign:
         self.link     = metadata[2]
 
 
-    async def check_rsvp(self):    
+    async def check_rsvp(self):
         if self.is_correct_time():
             await self.channel.send("{}\n{}\n{}".format(
-                "Scheduler:  :thumbsup: if you can make it, :thumbsdown: if you can't",
+                "Scheduler:  React :thumbsup: if you can make it, :thumbsdown: if you can't",
                 "RSVP by 4 PM tomorrow, please and thank you",
                 "@everyone"))
 
@@ -127,12 +127,12 @@ class Campaign:
             return True
 
         if current_day != weekdays[self.weekday]:
-            return
+            return False
         elif current_time.hour != 20:
-            return
+            return False
         elif current_time.minute != 0:
-            return
-        
+            return False
+
         return True
 
 
@@ -150,7 +150,7 @@ async def update_campaigns(client: Client):
 
     if len(client.campaigns) > 0:
         print("\nCampaign List:")
-        
+
         for campaign in client.campaigns:
             print("\t", campaign)
 
