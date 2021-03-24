@@ -25,11 +25,11 @@ class Client(discord.Client):
     async def on_ready(self):
         print("Logged on as", self.user)
 
-        update_campaigns.start(self)
+        await update_campaigns.start(self)
         scheduler.start(self)
 
 
-    def update_campaigns(self):
+    async def update_campaigns(self):
         self.campaigns = {}
 
         for channel in self.get_guild(593863078488178688).channels:
@@ -38,7 +38,7 @@ class Client(discord.Client):
                 campaign_flag = metadata[-1]
 
                 if campaign_flag[0:8] == "Campaign":
-                    self.campaigns[channel.name] = Campaign(channel, metadata)
+                    self.campaigns[channel.name] = await Campaign.init(channel, metadata)
 
             except AttributeError:
                 continue
@@ -50,6 +50,7 @@ class Client(discord.Client):
         if message.author == self.user:  # Make sure Ciel doesn't react to herself
             return
 
+        # ========== Commands ==========
         if message.content == "!ping":
             await message.channel.send("pong")
 
@@ -69,18 +70,24 @@ class Client(discord.Client):
         except KeyError:
             return
 
-        if message.content == "!time":
-            chan_name = message.channel.name
-            dnd_time = self.campaigns[chan_name].datetime
-            await message.channel.send(dnd_time)
+        campaign = self.campaigns[message.channel.name]
+
+        if message.content == "!next":
+            session_time = campaign.next.strftime("%A, %B %d at %I:%M%p")
+            await message.channel.send(session_time)
 
         if message.content == "!link":
-            chan_name = message.channel.name
-            link = self.campaigns[chan_name].link
+            link = campaign.link
             await message.channel.send(link)
 
+        if message.content == "!reset_date":
+            await campaign.calculate_next_session()
+            await message.channel.send("Reset.")
+
         if message.content == "!cancel" and from_admin:
-            await message.channel.send("Sorry, D&D has been cancelled for this week.")
+            session = campaign.next + datetime.timedelta(7)
+            await campaign.update_next_session(session)
+            await message.channel.send("Sorry, the next D&D has been cancelled.")
 
 
     # Check if everyone reacts to the RSVP message
@@ -101,13 +108,32 @@ class Client(discord.Client):
 
 
 class Campaign:
+    @classmethod
+    async def init(cls, channel, metadata):
+        self = Campaign(channel, metadata)
+
+        try:
+            self.next = datetime.datetime.strptime(
+                self.metadata[3], "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            await self.calculate_next_session()
+
+        return self
+
+
     def __init__(self, channel, metadata):
         self.channel = channel
+        self.metadata = metadata
 
         self.name     = metadata[0]
-        self.datetime = metadata[1]
         self.weekday  = metadata[1].split(" ")[0]
         self.link     = metadata[2]
+
+        campaign_time = metadata[1].split(" ")[2]
+        self.hour     = int(campaign_time.split(":")[0])
+        self.minute   = int(campaign_time.split(":")[1])
+
+        self.next     = datetime.datetime.now()
 
 
     async def check_rsvp(self):
@@ -135,6 +161,27 @@ class Campaign:
 
         return True
 
+    async def calculate_next_session(self):
+        now = datetime.datetime.now()
+        wkday = weekdays[self.weekday] + 1
+
+        # Change Date
+        delta = datetime.timedelta((wkday - now.weekday()) % 7)
+        session = now + delta
+
+        # Change Time
+        session = session.replace(hour=self.hour)
+        session = session.replace(minute=self.minute)
+        session = session.replace(second=0)
+        session = session.replace(microsecond=0)
+
+        await self.update_next_session(session)
+
+    async def update_next_session(self, session):
+        self.next = session
+        self.metadata[3] = str(self.next)
+        await self.channel.edit(topic="\n".join(self.metadata))
+
 
 # Check if any campaigns are in need of a scheduling notification
 @tasks.loop(seconds=60)
@@ -146,7 +193,7 @@ async def scheduler(client: Client):
 # Update the campaigns list every hour
 @tasks.loop(seconds=3600)
 async def update_campaigns(client: Client):
-    client.update_campaigns()
+    await client.update_campaigns()
 
     if len(client.campaigns) > 0:
         print("\nCampaign List:")
