@@ -25,8 +25,11 @@ class Client(discord.Client):
     async def on_ready(self):
         print("Logged on as", self.user)
 
-        await update_campaigns.start(self)
+        update_campaigns.start(self)
+        print("Campaign updater started.")
+
         scheduler.start(self)
+        print("Schedular started.")
 
 
     async def update_campaigns(self):
@@ -82,12 +85,17 @@ class Client(discord.Client):
 
         if message.content == "!reset_date":
             await campaign.calculate_next_session()
-            await message.channel.send("Reset.")
+            await message.channel.send("Next session will be on {}".format(
+                campaign.next.strftime("%A, %B %d at %I:%M%p")
+            ))
 
         if message.content == "!cancel" and from_admin:
             session = campaign.next + datetime.timedelta(7)
             await campaign.update_next_session(session)
-            await message.channel.send("Sorry, the next D&D has been cancelled.")
+            await message.channel.send("{}\n{}{}".format(
+                "Sorry, the next D&D session has been cancelled.",
+                "Next session will be on",
+                campaign.next.strftime("%A, %B %d at %I:%M%p")))
 
 
     # Check if everyone reacts to the RSVP message
@@ -143,7 +151,7 @@ class Campaign:
                 "RSVP by 4 PM tomorrow, please and thank you",
                 "@everyone"))
 
-    # Check if it's 8 AM the day of the session
+    # Check if it's 8 PM UTC the day before the session
     def is_correct_time(self):
         current_day = datetime.date.today().weekday()
         current_time = datetime.datetime.now().time()
