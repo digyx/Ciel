@@ -158,11 +158,10 @@ class Campaign:
 
 
     async def send_rsvp(self, channel):
-        if self.is_correct_time():
-            await channel.send("{}\n{}\n{}".format(
-                "Scheduler:  React :thumbsup: if you can make it, :thumbsdown: if you can't",
-                "RSVP by 4 PM tomorrow, please and thank you",
-                "@everyone"))
+        await channel.send("{}\n{}\n{}".format(
+            "Scheduler:  React :thumbsup: if you can make it, :thumbsdown: if you can't",
+            "RSVP by 4 PM tomorrow, please and thank you",
+            "@everyone"))
 
 
     # Check if it's 8 PM UTC the day before the session
@@ -209,7 +208,7 @@ class Campaign:
 @tasks.loop(seconds=60)
 async def scheduler(client: Client):
     for campaign in client.campaigns.values():
-        if db.is_on_week(campaign.name):
+        if db.is_on_week(campaign.name) and campaign.is_correct_time():
             channel = client.get_channel(int(campaign.chan_id))
             await campaign.send_rsvp(channel)
 
