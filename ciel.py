@@ -197,8 +197,8 @@ class Campaign:
         session = now + delta
 
         # Change Time
-        session = session.replace(hour=self.time.strip("PM").split(":")[0])
-        session = session.replace(minute=self.time.strip("PM").split(":")[1])
+        session = session.replace(hour=int(self.time.strip("PM").split(":")[0]))
+        session = session.replace(minute=int(self.time.strip("PM").split(":")[1]))
         session = session.replace(second=0)
         session = session.replace(microsecond=0)
 
