@@ -1,3 +1,5 @@
+__pycache__
 .vscode
 .flake8
 venv
+data

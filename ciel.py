@@ -2,6 +2,8 @@ import discord
 from discord.ext import tasks
 
 import datetime, os
+import db
+
 
 weekdays = {
     "Monday":    6,
@@ -25,26 +27,21 @@ class Client(discord.Client):
     async def on_ready(self):
         print("Logged on as", self.user)
 
-        update_campaigns.start(self)
-        print("Campaign updater started.")
+        self.sync_with_db()
+        print("Synced with DB.")
 
         scheduler.start(self)
         print("Schedular started.")
 
 
-    async def update_campaigns(self):
-        self.campaigns = {}
+    def sync_with_db(self):
+        for campaign in db.get_campaigns():
+            name = campaign[0]
 
-        for channel in self.get_guild(593863078488178688).channels:
-            try:
-                metadata = channel.topic.split("\n")
-                campaign_flag = metadata[-1]
+            metadata = campaign[1:]
+            chan_id = metadata[0]
 
-                if campaign_flag[0:8] == "Campaign":
-                    self.campaigns[channel.name] = await Campaign.init(channel, metadata)
-
-            except AttributeError:
-                continue
+            self.campaigns[name] = Campaign(name, chan_id, metadata)
 
 
     async def on_message(self, message: discord.Message):
@@ -64,38 +61,51 @@ class Client(discord.Client):
             return
 
         if message.content == "!count":
-            chan_id = message.channel.id
-            count = len(self.get_channel(chan_id).members)
+            count = len(message.channel.members)
             await message.channel.send(count)
+
+        if message.content.split(" ")[0] == "!init":
+            name = message.channel.name
+            chan_id = message.channel.id
+            metadata = message.content.split(" ")
+
+            if len(metadata) != 5:
+                await message.channel.send("Usage: !init (weekday) (time)(on days) (off days)")
+
+            campaign = Campaign.init(name, chan_id, metadata)
+            self.campaigns[name] = campaign
 
         try:  # Commands for only D&D campaigns
             self.campaigns[message.channel.name]
         except KeyError:
             return
 
-        campaign = self.campaigns[message.channel.name]
+        campaign: Campaign = self.campaigns[message.channel.name]
 
-        if message.content == "!next":
-            session_time = campaign.next.strftime("%A, %B %d at %I:%M%p")
+        if message.content == "!next":  # NOT SENSITIVE TO ON-OFF WEEKS
+            session_time = campaign.next_session().strftime("%A, %B %d at %I:%M%p")
             await message.channel.send(session_time)
 
         if message.content == "!link":
-            link = campaign.link
-            await message.channel.send(link)
+            await message.channel.send("https://api.vorona.gg/join")
 
-        if message.content == "!reset_date":
-            await campaign.calculate_next_session()
+        if message.content == "!reset_skips" and from_admin:
+            campaign.reset_skips()
             await message.channel.send("Next session will be on {}".format(
-                campaign.next.strftime("%A, %B %d at %I:%M%p")
+                campaign.next_session().strftime("%A, %B %d at %I:%M%p")
             ))
 
+        if message.content == "!rsvp" and from_admin:
+            channel = self.get_channel(int(campaign.chan_id))
+            await campaign.send_rsvp(channel)
+
         if message.content == "!cancel" and from_admin:
-            session = campaign.next + datetime.timedelta(7)
-            await campaign.update_next_session(session)
-            await message.channel.send("{}\n{}{}".format(
+            db.cancel(message.channel.name)
+
+            await message.channel.send("{}\n{} {}".format(
                 "Sorry, the next D&D session has been cancelled.",
                 "Next session will be on",
-                campaign.next.strftime("%A, %B %d at %I:%M%p")))
+                campaign.next_session().strftime("%A, %B %d at %I:%M%p")))
 
 
     # Check if everyone reacts to the RSVP message
@@ -117,39 +127,43 @@ class Client(discord.Client):
 
 class Campaign:
     @classmethod
-    async def init(cls, channel, metadata):
-        self = Campaign(channel, metadata)
-
-        try:
-            self.next = datetime.datetime.strptime(
-                self.metadata[3], "%Y-%m-%d %H:%M:%S")
-        except ValueError:
-            await self.calculate_next_session()
+    def init(cls, name, chan_id, metadata):
+        self = Campaign(name, chan_id, metadata)
+        self.update_db()
 
         return self
 
 
-    def __init__(self, channel, metadata):
-        self.channel = channel
-        self.metadata = metadata
-
-        self.name     = metadata[0]
-        self.weekday  = metadata[1].split(" ")[0]
-        self.link     = metadata[2]
-
-        campaign_time = metadata[1].split(" ")[2]
-        self.hour     = int(campaign_time.split(":")[0])
-        self.minute   = int(campaign_time.split(":")[1])
-
-        self.next     = datetime.datetime.now()
+    def __init__(self, name, chan_id, metadata):
+        self.name      = name
+        self.chan_id   = chan_id
+        self.weekday   = metadata[1]
+        self.time      = metadata[2]
+        self.on_weeks  = int(metadata[3]) + 1
+        self.off_weeks = int(metadata[4]) + 1
 
 
-    async def check_rsvp(self):
+    def update_db(self):
+        db.full_update(
+            self.name,
+            self.chan_id,
+            self.weekday,
+            self.time,
+            self.on_weeks,
+            self.off_weeks)
+
+
+    def reset_skips(self):
+        db.reset_off_weeks(self.name)
+
+
+    async def send_rsvp(self, channel):
         if self.is_correct_time():
-            await self.channel.send("{}\n{}\n{}".format(
+            await channel.send("{}\n{}\n{}".format(
                 "Scheduler:  React :thumbsup: if you can make it, :thumbsdown: if you can't",
                 "RSVP by 4 PM tomorrow, please and thank you",
                 "@everyone"))
+
 
     # Check if it's 8 PM UTC the day before the session
     def is_correct_time(self):
@@ -169,8 +183,13 @@ class Campaign:
 
         return True
 
-    async def calculate_next_session(self):
+
+    def next_session(self):
         now = datetime.datetime.now()
+
+        if self.weekday == "Test":
+            return now
+
         wkday = weekdays[self.weekday] + 1
 
         # Change Date
@@ -178,36 +197,21 @@ class Campaign:
         session = now + delta
 
         # Change Time
-        session = session.replace(hour=self.hour)
-        session = session.replace(minute=self.minute)
+        session = session.replace(hour=self.time.strip("PM").split(":")[0])
+        session = session.replace(minute=self.time.strip("PM").split(":")[1])
         session = session.replace(second=0)
         session = session.replace(microsecond=0)
 
-        await self.update_next_session(session)
-
-    async def update_next_session(self, session):
-        self.next = session
-        self.metadata[3] = str(self.next)
-        await self.channel.edit(topic="\n".join(self.metadata))
+        return session
 
 
 # Check if any campaigns are in need of a scheduling notification
 @tasks.loop(seconds=60)
 async def scheduler(client: Client):
     for campaign in client.campaigns.values():
-        await campaign.check_rsvp()
-
-
-# Update the campaigns list every hour
-@tasks.loop(seconds=3600)
-async def update_campaigns(client: Client):
-    await client.update_campaigns()
-
-    if len(client.campaigns) > 0:
-        print("\nCampaign List:")
-
-        for campaign in client.campaigns:
-            print("\t", campaign)
+        if db.is_on_week(campaign.name):
+            channel = client.get_channel(int(campaign.chan_id))
+            await campaign.send_rsvp(channel)
 
 
 # Start Ciel up
