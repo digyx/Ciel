@@ -89,7 +89,7 @@ class Client(discord.Client):
         if message.content == "!link":
             await message.channel.send("https://api.vorona.gg/join")
 
-        if message.content == "!reset_skips" and from_admin:
+        if message.content == "!reset_count" and from_admin:
             campaign.reset_skips()
             await message.channel.send("Next session will be on {}".format(
                 campaign.next_session().strftime("%A, %B %d at %I:%M%p")

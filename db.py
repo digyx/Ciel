@@ -38,9 +38,9 @@ def full_update(name, chan_id, weekday, time, on_weeks, off_weeks):
     else:
         cur.execute("""
             UPDATE campaigns
-            SET weekday=:weekday, time=:time, on_weeks=:on_weeks, off_weeks=:off_weeks
+            SET weekday=:weekday, time=:time, on_weeks=:on_weeks, off_weeks=:off_weeks, on_count=0, off_count=0
             WHERE name=:name
-        """, (name, weekday, time, on_weeks, off_weeks))
+        """, (weekday, time, on_weeks, off_weeks, name))
 
     conn.commit()
 
@@ -81,5 +81,5 @@ def cancel(name):
 
 
 def reset_off_weeks(name):
-    cur.execute("UPDATE campaigns SET skipped_weeks=0 WHERE name=:name", (name,))
+    cur.execute("UPDATE campaigns SET on_count=0, off_count=0 WHERE name=:name", (name,))
     conn.commit()
