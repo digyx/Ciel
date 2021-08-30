@@ -52,13 +52,13 @@ def is_on_week(name):
         WHERE name=:name
     """, (name,)).fetchone()
 
-    if on_count % on_weeks != 0:
+    if on_count != on_weeks:
         on_off = "on_count"
-    elif off_count % off_weeks != 0:
+    elif off_count != off_weeks:
         on_off = "off_count"
     else:
         on_off = "on_count"
-        cur.execute("UPDATE campaigns SET on_count=1, off_count=1 WHERE name=:name", (name,))
+        cur.execute("UPDATE campaigns SET on_count=0, off_count=0 WHERE name=:name", (name,))
 
     cur.execute("""
         UPDATE campaigns

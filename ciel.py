@@ -113,7 +113,7 @@ class Client(discord.Client):
         msg = reaction.message
 
         if msg.author == self.user and msg.content[0:9] == "Scheduler":
-            if reaction.count == (len(msg.channel.members) - 2) and reaction.emoji == "👍":
+            if reaction.count == (len(msg.channel.members) - 3) and reaction.emoji == "👍":
                 await msg.channel.send("Thank you, see you soon!")
 
             if reaction.emoji == "👎":
