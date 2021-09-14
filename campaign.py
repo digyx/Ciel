@@ -1,5 +1,5 @@
-import datetime
 from __future__ import annotations
+import datetime
 
 from logger import Logger
 from db import conn, cur
