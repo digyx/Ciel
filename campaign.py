@@ -23,7 +23,7 @@ class Campaign:
         res = cur.execute("""
             SELECT chan_id, weekday, time, on_weeks, off_weeks, on_count, off_count, cancelled
             FROM campaigns
-            WHERE name=?
+            WHERE name=:name
         """, (name,)).fetchone()
 
         if res is None:

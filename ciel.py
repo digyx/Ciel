@@ -114,7 +114,7 @@ class Client(discord.Client):
 # Check if any campaigns are in need of a scheduling notification
 @tasks.loop(seconds=60)
 async def scheduler(client: Client):
-    campaigns = [Campaign(name) for name in db.get_campaigns()]
+    campaigns = [Campaign(name[0]) for name in db.get_campaigns()]
     for campaign in campaigns:
         if campaign.is_on_week() and campaign.is_correct_time():
             await client.send_rsvp(campaign.get_chan_id())
