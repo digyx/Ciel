@@ -117,16 +117,13 @@ class Campaign:
         return True
 
 
-    def is_on_week(self):
-        on_weeks, on_count, off_weeks, off_count, cancelled = cur.execute("""
-            SELECT on_weeks, on_count, off_weeks, off_count, cancelled
-            FROM campaigns
-            WHERE name=:name
-        """, (self.name,)).fetchone()
+    def is_on_week(self) -> bool:
+        if self.weekday == "Debug":
+            return True
 
-        if on_count != on_weeks:
+        if self.on_count != self.on_weeks:
             on_off = "on_count"
-        elif off_count != off_weeks:
+        elif self.off_count != self.off_weeks:
             on_off = "off_count"
         else:
             on_off = "on_count"
@@ -137,7 +134,7 @@ class Campaign:
             SET {0} = {0} + 1
             WHERE name=:name""".format(on_off), (self.name,))
 
-        if cancelled == 1:
+        if self.cancelled == 1:
             cur.execute("UPDATE campaigns SET cancelled=0 WHERE name=:name", (self.name,))
             conn.commit()
             return False
