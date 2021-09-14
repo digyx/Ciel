@@ -23,7 +23,7 @@ class Campaign:
         res = cur.execute("""
             SELECT chan_id, weekday, time, on_weeks, off_weeks, on_count, off_count, cancelled
             FROM campaigns
-            WHERE name=:name
+            WHERE name=?
         """, (name,)).fetchone()
 
         if res is None:
@@ -60,6 +60,11 @@ class Campaign:
                 0, 0, 0)
             """, (name, chan_id, weekday, time, on_weeks, off_weeks))
         conn.commit()
+
+        Logger(name).info({
+            "campaign": name,
+            "event": "created"
+        })
 
         return Campaign(name)
 
