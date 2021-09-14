@@ -48,8 +48,8 @@ class Campaign:
     def new(name: str, chan_id: int, metadata: str) -> Campaign:
         weekday   = metadata[1]
         time      = metadata[2]
-        on_weeks  = int(metadata[3]) + 1
-        off_weeks = int(metadata[4]) + 1
+        on_weeks  = int(metadata[3])
+        off_weeks = int(metadata[4])
 
         cur.execute("""
             INSERT INTO campaigns
