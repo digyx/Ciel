@@ -59,6 +59,7 @@ class Campaign:
                 :on_weeks, :off_weeks,
                 0, 0, 0)
             """, (name, chan_id, weekday, time, on_weeks, off_weeks))
+        conn.commit()
 
         return Campaign(name)
 
@@ -84,7 +85,6 @@ class Campaign:
             SET weekday=:weekday, time=:time, on_weeks=:on_weeks, off_weeks=:off_weeks, on_count=0, off_count=0
             WHERE name=:name
         """, (self.weekday, self.time, self.on_weeks, self.off_weeks, self.name))
-
         conn.commit()
 
 
