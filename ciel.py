@@ -116,7 +116,7 @@ class Client(discord.Client):
 async def scheduler(client: Client):
     campaigns = [Campaign(name[0]) for name in db.get_campaigns()]
     for campaign in campaigns:
-        if campaign.is_on_week() and campaign.is_correct_time():
+        if campaign.is_correct_time() and campaign.is_on_week():
             await client.send_rsvp(campaign.get_chan_id())
 
 

@@ -94,13 +94,14 @@ class Campaign:
 
 
     def cancel(self):
-        cur.execute("UPDATE campaigns SET cancelled=1 WHERE name=:name", (self.name,))
-        conn.commit()
+        self.cancelled = 1
+        self.save()
 
 
     def reset_off_weeks(self):
-        cur.execute("UPDATE campaigns SET on_count=0, off_count=0 WHERE name=:name", (self.name,))
-        conn.commit()
+        self.on_count  = 0
+        self.off_count = 0
+        self.save()
 
 
     # Check if it's 8 PM UTC the day before the session
@@ -127,26 +128,24 @@ class Campaign:
             return True
 
         if self.on_count != self.on_weeks:
-            on_off = "on_count"
+            on = True
+            self.on_count += 1
         elif self.off_count != self.off_weeks:
-            on_off = "off_count"
+            on = False
+            self.off_count += 1
         else:
-            on_off = "on_count"
-            cur.execute("UPDATE campaigns SET on_count=0, off_count=0 WHERE name=:name", (self.name,))
+            on = True
+            self.on_count  = 0
+            self.off_count = 0
 
-        cur.execute("""
-            UPDATE campaigns
-            SET {0} = {0} + 1
-            WHERE name=:name""".format(on_off), (self.name,))
 
         if self.cancelled == 1:
-            cur.execute("UPDATE campaigns SET cancelled=0 WHERE name=:name", (self.name,))
-            conn.commit()
-            return False
+            self.cancelled = 0
+            on = False
 
-        conn.commit()
+        self.save()
 
-        return on_off == "on_count"
+        return on
 
 
     def next_session(self):
