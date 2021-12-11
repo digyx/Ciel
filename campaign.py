@@ -23,7 +23,7 @@ class Campaign:
         res = cur.execute("""
             SELECT chan_id, weekday, time, on_weeks, off_weeks, on_count, off_count, cancelled
             FROM campaigns
-            WHERE name=:name
+            WHERE name=?
         """, (name,)).fetchone()
 
         if res is None:
@@ -87,9 +87,16 @@ class Campaign:
 
         cur.execute("""
             UPDATE campaigns
-            SET weekday=:weekday, time=:time, on_weeks=:on_weeks, off_weeks=:off_weeks, on_count=0, off_count=0
-            WHERE name=:name
-        """, (self.weekday, self.time, self.on_weeks, self.off_weeks, self.name))
+            SET weekday=?, time=?,
+            on_weeks=?, off_weeks=?,
+            on_count=?, off_count=?,
+            cancelled=?
+            WHERE name=?
+        """, (self.weekday, self.time,
+              self.on_weeks, self.off_weeks,
+              self.on_count, self.off_count,
+              self.cancelled,
+              self.name))
         conn.commit()
 
 
@@ -125,7 +132,7 @@ class Campaign:
 
     def is_on_week(self) -> bool:
         if self.weekday == "Debug":
-            return True
+            on = True
 
         if self.on_count != self.on_weeks:
             on = True
@@ -135,7 +142,7 @@ class Campaign:
             self.off_count += 1
         else:
             on = True
-            self.on_count  = 0
+            self.on_count  = 1
             self.off_count = 0
 
 

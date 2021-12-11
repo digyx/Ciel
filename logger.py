@@ -10,19 +10,18 @@ class Logger:
         obj["logger_id"]    = self.__id
         obj["logger_ident"] = self.__ident
 
-        match level:
-            case 1:
-                obj["logger_level"] = "critical"
-            case 2:
-                obj["logger_level"] = "error"
-            case 3:
-                obj["logger_level"] = "warning"
-            case 4:
-                obj["logger_level"] = "debug"
-            case 5:
-                obj["logger_level"] = "info"
-            case _:
-                obj["logger_level"] = "other"
+        if level== 1:
+            obj["logger_level"] = "critical"
+        elif level == 2:
+            obj["logger_level"] = "error"
+        elif level == 3:
+            obj["logger_level"] = "warning"
+        elif level == 4:
+            obj["logger_level"] = "debug"
+        elif level == 5:
+            obj["logger_level"] = "info"
+        else:
+            obj["logger_level"] = "other"
 
         print(json.dumps(obj))
 
