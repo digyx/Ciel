@@ -9,6 +9,5 @@ COPY pyproject.toml pdm.lock ./
 COPY src/ src/
 
 RUN pdm install --prod --no-editable
-RUN mkdir data
 
 CMD ["pdm", "run", "python", "-m", "ciel"]

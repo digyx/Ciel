@@ -1,6 +1,6 @@
 import sqlite3
 
-conn = sqlite3.connect("data/ciel.db")
+conn = sqlite3.connect("ciel.db")
 cur = conn.cursor()
 
 cur.execute(

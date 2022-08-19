@@ -2,7 +2,7 @@
 
 test:
     - pdm run pytest --cov
-    rm data/ciel.db
+    rm ciel.db
 
 lint:
     pdm run black .

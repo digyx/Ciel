@@ -1,0 +1,17 @@
+version: 2.1
+
+jobs:
+  lint-and-test:
+    docker:
+      - image: python
+    steps:
+      - checkout
+      - run: pip install pdm
+      - run: pdm install
+      - run: pdm run black --check .
+      - run: pdm run pytest --cov
+
+workflows:
+  default:
+    jobs:
+      - lint-and-test
