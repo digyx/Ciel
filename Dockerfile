@@ -2,10 +2,13 @@ FROM python:3
 
 WORKDIR /usr/src/app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -U pip setuptools wheel
+RUN pip install pdm
 
-COPY *.py ./
-ENV DISCORD_TOK=$DISCORD_TOK
+COPY pyproject.toml pdm.lock ./
+COPY src/ src/
 
-CMD ["python3", "ciel.py"]
+RUN pdm install --prod --no-editable
+RUN mkdir data
+
+CMD ["pdm", "run", "python", "-m", "ciel"]
