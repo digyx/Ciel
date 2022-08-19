@@ -24,7 +24,7 @@ class Logger:
         else:
             obj["logger_level"] = "other"
 
-        print(json.dumps(obj))
+        print(json.dumps(obj), flush=True)
 
     def critical(self, obj: dict):
         self.log(1, obj)

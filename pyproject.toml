@@ -21,7 +21,7 @@ lint = "black ."
 lint-check = "black --check ."
 
 test = "pytest --cov"
-post_test = "rm ciel.db"
+post_test = "rm test.db"
 
 [tool.pdm.dev-dependencies]
 dev = [

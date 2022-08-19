@@ -1,18 +1,21 @@
+import argparse
 import os
 
 import discord
 from discord.ext import tasks
 
-import db
 from logger import Logger
 from campaign import Campaign
+from db import Database
 
 
 class Client(discord.Client):
     def __init__(self):
         self.logger = Logger("client")
+
         intents = discord.Intents().default()
         intents.members = True
+        intents.message_content = True
 
         super().__init__(intents=intents)
 
@@ -32,6 +35,7 @@ class Client(discord.Client):
         # ========== Commands ==========
         if message.content == "!ping":
             await message.channel.send("pong")
+            return
 
         if message.content == "!goodnight" and from_admin:
             await message.channel.send("ZZZzzz")
@@ -51,10 +55,11 @@ class Client(discord.Client):
                 )
 
             Campaign.new(name, chan_id, metadata)
+            return
 
         try:  # Commands for only D&D campaigns
             campaign = Campaign(message.channel.name)
-        except KeyError:
+        except NameError:
             return
 
         if message.content == "!next":
@@ -98,7 +103,7 @@ class Client(discord.Client):
                 await msg.channel.send("Thank you, see you soon!")
 
             if reaction.emoji == "👎":
-                raw_users = await reaction.users().flatten()
+                raw_users = [i async for i in reaction.users()]
                 users = ", ".join([user.name for user in raw_users])
 
                 dm = "Sorry, {} in {} can't make it.".format(users, msg.channel.name)
@@ -119,16 +124,20 @@ class Client(discord.Client):
 # Check if any campaigns are in need of a scheduling notification
 @tasks.loop(seconds=60)
 async def scheduler(client: Client):
-    campaigns = [Campaign(name[0]) for name in db.get_campaigns()]
+    campaigns = [Campaign(name[0]) for name in Database().get_campaigns()]
     for campaign in campaigns:
         if campaign.is_correct_time() and campaign.is_on_week():
             await client.send_rsvp(campaign.get_chan_id())
 
 
-# Start Ciel up
-token = os.getenv("DISCORD_TOK")
+if __name__ == "__main__":
+    if (token := os.getenv("DISCORD_TOK")) is None:
+        raise EnvironmentError("DISCORD_TOK not set")
 
-if token is None:
-    raise EnvironmentError("DISCORD_TOK not set")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--db-path", dest="db_path", type=str, default="ciel.db")
 
-Client().run(token)
+    args = parser.parse_args()
+    Database(args.db_path)
+
+    Client().run(token)

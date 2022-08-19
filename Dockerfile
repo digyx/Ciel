@@ -15,4 +15,4 @@ FROM python:3.10-alpine
 ENV PYTHONPATH=/project/pkgs
 COPY --from=builder /ciel/.venv/lib/python3.10/site-packages /project/pkgs
 
-CMD ["python", "-m", "ciel"]
+CMD ["python", "-m", "ciel", "--db-path", "/project/ciel.db"]

@@ -2,7 +2,7 @@ from __future__ import annotations
 import datetime
 
 from logger import Logger
-from db import conn, cur
+from db import Database
 
 
 weekdays = {
@@ -20,7 +20,8 @@ class Campaign:
     def __init__(self, name: str):
         self.logger = Logger(name)
 
-        res = cur.execute(
+        db = Database()
+        res = db.cur.execute(
             """
             SELECT chan_id, weekday, time, on_weeks, off_weeks, on_count, off_count, cancelled
             FROM campaigns
@@ -31,7 +32,6 @@ class Campaign:
 
         if res is None:
             self.logger.error({"campaign": name, "msg": "Campaign not found."})
-
             raise NameError("campaign not found.")
 
         self.name = name
@@ -51,7 +51,8 @@ class Campaign:
         on_weeks = int(metadata[2])
         off_weeks = int(metadata[3])
 
-        cur.execute(
+        db = Database()
+        db.cur.execute(
             """
             INSERT INTO campaigns
             VALUES (
@@ -62,7 +63,7 @@ class Campaign:
             """,
             (name, chan_id, weekday, time, on_weeks, off_weeks),
         )
-        conn.commit()
+        db.conn.commit()
 
         Logger(name).info({"campaign": name, "event": "created"})
 
@@ -73,14 +74,17 @@ class Campaign:
 
     def save(self):
         logger = Logger(self.name)
-        res = cur.execute("SELECT name FROM campaigns WHERE name=:name", (self.name,))
+        db = Database()
+        res = db.cur.execute(
+            "SELECT name FROM campaigns WHERE name=:name", (self.name,)
+        )
 
         if res.fetchone() is None:
             logger.error({"campaign": self.name, "msg": "Campaign not found."})
 
             raise NameError("campaign not found.")
 
-        cur.execute(
+        db.cur.execute(
             """
             UPDATE campaigns
             SET weekday=?, time=?,
@@ -100,7 +104,7 @@ class Campaign:
                 self.name,
             ),
         )
-        conn.commit()
+        db.conn.commit()
 
     def cancel(self):
         self.cancelled = 1
