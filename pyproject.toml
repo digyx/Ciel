@@ -3,25 +3,25 @@ name = "Ciel"
 version = "0.1.0"
 description = "Discord bot for scheduling D&D campaigns"
 authors = [
-    {name = "Devon Tingley", email = "dtingley@twilit.io"},
+    { name = "Devon Tingley", email = "dtingley@twilit.io" },
 ]
+license = {text = "MIT"}
+
+requires-python = ">=3.10"
 dependencies = [
     "discord.py>=2.0.0",
 ]
-requires-python = ">=3.10"
-license = {text = "MIT"}
-[project.optional-dependencies]
 
 [build-system]
 requires = ["pdm-pep517>=1.0.0"]
 build-backend = "pdm.pep517.api"
 
-[tool]
-[tool.pdm]
+[tool.pdm.scripts]
+lint = "black ."
+lint-check = "black --check ."
 
-[tool.pyright]
-venvPath = ".venv"
-venv = "."
+test = "pytest --cov"
+post_test = "rm ciel.db"
 
 [tool.pdm.dev-dependencies]
 dev = [
@@ -29,3 +29,8 @@ dev = [
     "pytest-cov>=3.0.0",
     "black>=22.6.0",
 ]
+
+[tool.pyright]
+venvPath = ".venv"
+venv = "."
+

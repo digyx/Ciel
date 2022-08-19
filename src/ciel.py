@@ -47,7 +47,7 @@ class Client(discord.Client):
 
             if len(metadata) != 4:
                 await message.channel.send(
-                    "Usage: !init (weekday) (time)(on days) (off days)"
+                    "Usage: !init (weekday) (time) (on days) (off days)"
                 )
 
             Campaign.new(name, chan_id, metadata)

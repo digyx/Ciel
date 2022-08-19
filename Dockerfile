@@ -1,6 +1,6 @@
 FROM python:3
 
-WORKDIR /usr/src/app
+WORKDIR /ciel
 
 RUN pip install -U pip setuptools wheel
 RUN pip install pdm

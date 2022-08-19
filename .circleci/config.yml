@@ -8,8 +8,8 @@ jobs:
       - checkout
       - run: pip install pdm
       - run: pdm install
-      - run: pdm run black --check .
-      - run: pdm run pytest --cov
+      - run: pdm lint-check
+      - run: pdm test
   build-and-push:
     docker:
       - image: docker
