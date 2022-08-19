@@ -17,16 +17,13 @@ class Client(discord.Client):
         super().__init__(intents=intents)
 
     async def on_ready(self):
-        self.logger.info({
-            "msg": "Logged on as {}".format(self.user)
-        })
+        self.logger.info({"msg": "Logged on as {}".format(self.user)})
 
         scheduler.start(self)
         self.logger.info({"msg": "Schedular started."})
 
-
     async def on_message(self, message: discord.Message):
-        from_admin = (message.author.id == 447533152567689226)
+        from_admin = message.author.id == 447533152567689226
 
         # Make sure Ciel doesn't react to herself
         if message.author == self.user:
@@ -42,22 +39,21 @@ class Client(discord.Client):
 
             return
 
-        if message.content == "!count":
-            count = len(message.channel.members)
-            await message.channel.send(count)
-
         if message.content.split(" ")[0] == "!init":
-            name: str     = message.channel.name
-            chan_id: int  = message.channel.id
-            metadata: str = message.content.split(" ")
+            name: str = message.channel.name
+            chan_id: int = message.channel.id
+            metadata: list[str] = message.content.split(" ")
+            metadata.pop(0)  # Remove !init command
 
-            if len(metadata) != 5:
-                await message.channel.send("Usage: !init (weekday) (time)(on days) (off days)")
+            if len(metadata) != 4:
+                await message.channel.send(
+                    "Usage: !init (weekday) (time)(on days) (off days)"
+                )
 
             Campaign.new(name, chan_id, metadata)
 
         try:  # Commands for only D&D campaigns
-          campaign = Campaign(message.channel.name)
+            campaign = Campaign(message.channel.name)
         except KeyError:
             return
 
@@ -70,9 +66,11 @@ class Client(discord.Client):
 
         if message.content == "!reset_count" and from_admin:
             campaign.reset_off_weeks()
-            await message.channel.send("Next session will be on {}".format(
-                campaign.next_session().strftime("%A, %B %d at %I:%M%p")
-            ))
+            await message.channel.send(
+                "Next session will be on {}".format(
+                    campaign.next_session().strftime("%A, %B %d at %I:%M%p")
+                )
+            )
 
         if message.content == "!rsvp" and from_admin:
             await self.send_rsvp(campaign.get_chan_id())
@@ -80,26 +78,23 @@ class Client(discord.Client):
         if message.content == "!cancel" and from_admin:
             campaign.cancel()
 
-            await message.channel.send("{}\n{} {}".format(
-                "Sorry, the next D&D session has been cancelled.",
-                "Next session will be on",
-                campaign.next_session().strftime("%A, %B %d at %I:%M%p")))
-
-    async def send_rsvp(self, channel_id: int):
-        channel = self.get_channel(int(channel_id))
-        await channel.send("{}\n{}\n{}".format(
-            "Scheduler:  React :thumbsup: if you can make it, :thumbsdown: if you can't",
-            "RSVP by 4 PM tomorrow, please and thank you",
-            "@everyone"))
-
-
+            await message.channel.send(
+                "{}\n{} {}".format(
+                    "Sorry, the next D&D session has been cancelled.",
+                    "Next session will be on",
+                    campaign.next_session().strftime("%A, %B %d at %I:%M%p"),
+                )
+            )
 
     # Check if everyone reacts to the RSVP message
     async def on_reaction_add(self, reaction: discord.Reaction, user: discord.Member):
         msg = reaction.message
 
         if msg.author == self.user and msg.content[0:9] == "Scheduler":
-            if reaction.count == (len(msg.channel.members) - 3) and reaction.emoji == "👍":
+            if (
+                reaction.count == (len(msg.channel.members) - 3)
+                and reaction.emoji == "👍"
+            ):
                 await msg.channel.send("Thank you, see you soon!")
 
             if reaction.emoji == "👎":
@@ -109,6 +104,16 @@ class Client(discord.Client):
                 dm = "Sorry, {} in {} can't make it.".format(users, msg.channel.name)
                 user = await self.fetch_user(447533152567689226)
                 await user.send(dm)
+
+    async def send_rsvp(self, channel_id: int):
+        channel = self.get_channel(int(channel_id))
+        await channel.send(
+            "{}\n{}\n{}".format(
+                "Scheduler:  React :thumbsup: if you can make it, :thumbsdown: if you can't",
+                "RSVP by 4 PM tomorrow, please and thank you",
+                "@everyone",
+            )
+        )
 
 
 # Check if any campaigns are in need of a scheduling notification
@@ -122,5 +127,8 @@ async def scheduler(client: Client):
 
 # Start Ciel up
 token = os.getenv("DISCORD_TOK")
-Client().run(token)
 
+if token is None:
+    raise EnvironmentError("DISCORD_TOK not set")
+
+Client().run(token)

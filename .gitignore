@@ -3,3 +3,5 @@ __pycache__
 .flake8
 venv
 data
+.coverage
+.pdm.toml
