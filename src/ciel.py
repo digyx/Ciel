@@ -67,7 +67,7 @@ class Client(discord.Client):
             await message.channel.send(session_time)
 
         if message.content == "!link":
-            await message.channel.send("https://dnd.devontingley.com/join")
+            await message.channel.send("https://dnd.scalio.me/join")
 
         if message.content == "!reset_count" and from_admin:
             campaign.reset_off_weeks()
